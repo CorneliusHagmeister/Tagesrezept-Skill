@@ -1,5 +1,5 @@
 "use strict";
-var APP_ID = "awesome";
+var APP_ID = "846c9525-6633-43d5-a17b-28d30ccfaed7";
 
 var APP_STATES = {
   RECIPE: "_RECIPEAMODE", // Providing the recipe.
@@ -8,9 +8,8 @@ var APP_STATES = {
 };
 
 let recipe = {
-  instructions: ["Den Käse fein reiben, die saure Sahne mit etwas Paprikapulver glatt rühren. Das Mehl in eine große Rührschüssel sieben. 50 g Käse dazu geben und mit dem Mehl mischen. Die Butter in Flocken, etwas Kreuzkümmel, Salz und Pfeffer zufügen und alles zu einem glatten Teig kneten. Dabei löffelweise 150 ml saure Sahne untermischen.",
-    "Den Backofen auf 200 Grad vorheizen, das Backblech einfetten.",
-    "Den Teig auf der mit Mehl bestäubten Arbeitsfläche etwa 1 cm dick ausrollen. 5 cm große Taler ausstechen und auf das Backblech legen. Die Taler mit der restlichen sauren Sahne bestreichen und mit dem verbliebenen Käse und der Petersilie bestreuen. 15 Minuten backen und noch warm servieren."
+  instructions: ["Den Käse fein reiben,.",
+    "Den Teig auf der mit Mehl bestäubten Arbeitsfläche etwa 1 cm dick ausrollen."
   ],
   title: "Pikante Sauerrahmtaler",
   description: "ergibt 50 Kekse Käse, saure Sahne, Paprikapulver, Weizenmehl, Kreuzkümmel, Salz und Pfeffer, Petersilie",
@@ -32,8 +31,7 @@ var languageString = {
       "HELP_UNHANDLED": "Sage ja, um fortzufahren, oder nein, um das Spiel zu beenden.",
       "START_UNHANDLED": "Du kannst jederzeit ein neues Spiel beginnen, sage einfach „Spiel starten“.",
       "NEW_SESSION_MESSAGE": "Willkommen beim %s. ",
-      "WELCOME_MESSAGE": "Ich helfe dir das heutige Tagesrezept zu kochen." +
-        "Sage einfach die Zahl, die zur richtigen Antwort passt. Fangen wir an. ",
+      "WELCOME_MESSAGE": "Ich helfe dir das heutige Tagesrezept zu kochen.",
       "ANSWER_CORRECT_MESSAGE": "Richtig. ",
       "ANSWER_WRONG_MESSAGE": "Falsch. ",
       "CORRECT_ANSWER_MESSAGE": "Die richtige Antwort ist %s: %s. ",
@@ -51,7 +49,6 @@ var Alexa = require("alexa-sdk");
 
 exports.handler = function(event, context, callback) {
   var alexa = Alexa.handler(event, context);
-  alexa.appId = APP_ID;
   // To enable string internationalization (i18n) features, set a resources object.
   alexa.resources = languageString;
   alexa.registerHandlers(newSessionHandlers, startStateHandlers, recipeStateHandlers, helpStateHandlers);
@@ -79,9 +76,9 @@ var newSessionHandlers = {
 
 var startStateHandlers = Alexa.CreateStateHandler(APP_STATES.START, {
   "StartGame": function(newGame) {
-    var speechOutput = newGame ? this.t("NEW_SESSION_MESSAGE", this.t("APP_NAME")) + this.t("WELCOME_MESSAGE", GAME_LENGTH.toString()) : "";
+    var speechOutput = newGame ? this.t("NEW_SESSION_MESSAGE", this.t("APP_NAME")) + this.t("WELCOME_MESSAGE") : "";
 
-    speechOutput += this.t("RECIPE_OF_THE_DAY_IS") + recipe.title;
+    speechOutput += this.t("RECIPE_OF_THE_DAY_IS") + recipe.title +" ";
 
     var repromptText = this.t("START_QUESTION");
 
@@ -90,7 +87,7 @@ var startStateHandlers = Alexa.CreateStateHandler(APP_STATES.START, {
     Object.assign(this.attributes, {
       "speechOutput": speechOutput,
       "repromptText": repromptText,
-      "instructionsIndex": 0
+      "instructionsIndex": -1
     });
 
     // Set the current state to RECIPE mode. The skill will now use handlers defined in recipeStateHandlers
@@ -100,12 +97,6 @@ var startStateHandlers = Alexa.CreateStateHandler(APP_STATES.START, {
 });
 
 var recipeStateHandlers = Alexa.CreateStateHandler(APP_STATES.RECIPE, {
-  "AnswerIntent": function() {
-    handleUserAnswer.call(this, false);
-  },
-  "DontKnowIntent": function() {
-    handleUserGuess.call(this, true);
-  },
   "AMAZON.YesIntent": function() {
 handlePositiveAnswer.call(this)
   },
@@ -113,7 +104,7 @@ handlePositiveAnswer.call(this)
     handleNegativeAnswer.call(this)
   },
   "AMAZON.NextIntent": function() {
-    deliverNextInstruction.call(this);
+handlePositiveAnswer.call(this)
   },
   "AMAZON.StartOverIntent": function() {
     this.handler.state = APP_STATES.START;
@@ -203,18 +194,20 @@ function repeatCurrentInstruction() {
 }
 
 function deliverNextInstruction() {
+    let instructionsIndex = this.attributes["instructionsIndex"] + 1;
   Object.assign(this.attributes, {
-    "instructionsIndex": this.attributes["instructionsIndex"] + 1
+    "instructionsIndex": instructionsIndex
   });
-  if (this.attributes["instructionsIndex"] == 0) {
-    this.emit(":ask", recipe["instructions"][this.attributes["instructionsIndex"] + "Sage Weiter für den nächsten Schritt. Du kannst mich auch bitten den aktuellen Schritt noch einmal zu wiederholen. Sage dazu wiederholen."]);
+  if (instructionsIndex == 0) {
+    this.emit(":ask", recipe["instructions"][instructionsIndex] + "Sage Weiter für den nächsten Schritt. Du kannst mich auch bitten den aktuellen Schritt noch einmal zu wiederholen. Sage dazu wiederholen.");
   } else {
-    if (this.attributes["instructionsIndex"] < recipe["instructions"].length) {
-      this.emit(":ask", recipe["instructions"][this.attributes["instructionsIndex"]]);
+    if (instructionsIndex < (recipe["instructions"].length-1)) {
+      this.emit(":ask", recipe["instructions"][instructionsIndex]);
     } else {
-      this.emit(":ask", recipe["instructions"][this.attributes["instructionsIndex"]] + "Das war es schon. Guten Appetit! Falls du einen Schritt nochmal wiederholen willst, bleibe ich für dich aktiv. Andernfalls kannst du mich jetzt gerne beenden.");
+      this.emit(":ask", recipe["instructions"][instructionsIndex] + "Das war es schon. Guten Appetit! Falls du einen Schritt nochmal wiederholen willst, bleibe ich für dich aktiv. Andernfalls kannst du mich jetzt gerne beenden.");
     }
   }
+
 }
 
 function handlePositiveAnswer() {
