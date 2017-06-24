@@ -111,7 +111,7 @@ handlePositiveAnswer.call(this)
     this.emitWithState("StartGame", false);
   },
   "AMAZON.RepeatIntent": function() {
-    this.emit(":ask", this.attributes["speechOutput"], this.attributes["repromptText"]);
+    repeatCurrentInstruction.call(this)
   },
   "AMAZON.HelpIntent": function() {
     this.handler.state = APP_STATES.HELP;
