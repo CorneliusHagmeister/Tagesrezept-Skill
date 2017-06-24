@@ -19,7 +19,6 @@ let recipe = {
 var languageString = {
   "de": {
     "translation": {
-      "QUESTIONS": questions["QUESTIONS_DE_DE"],
       "APP_NAME": "Kochbuch", // Be sure to change this for your skill.
       "HELP_MESSAGE": "Ich stelle dir %s Multiple-Choice-Fragen. Antworte mit der Zahl, die zur richtigen Antwort gehört. " +
         "Sage beispielsweise eins, zwei, drei oder vier. Du kannst jederzeit ein neues Spiel beginnen, sage einfach „Spiel starten“. ",
@@ -224,62 +223,4 @@ function handlePositiveAnswer() {
 
 function handleNegativeAnswer() {
   this.emit(":tell", " Frag mich doch später nochmal");
-}
-
-function handleUserAnswer() {
-  var speechOutput = "";
-
-
-  // if answer = yes
-  // read next line
-  if (parseInt(this.event.request.intent.slots.Answer.value) == "ja")
-    deliverNextInstruction.call(this);
-  // increase attribute instructionIndex
-  // wait for next input
-  // if answer not yes - quit
-
-  if (answerSlotValid && parseInt(this.event.request.intent.slots.Answer.value) == this.attributes["correctAnswerIndex"]) {
-    currentScore++;
-    speechOutputAnalysis = this.t("ANSWER_CORRECT_MESSAGE");
-  } else {
-    if (!userGaveUp) {
-      speechOutputAnalysis = this.t("ANSWER_WRONG_MESSAGE");
-    }
-
-    speechOutputAnalysis += this.t("CORRECT_ANSWER_MESSAGE", correctAnswerIndex, correctAnswerText);
-  }
-
-  // Check if we can exit the game session after GAME_LENGTH questions (zero-indexed)
-  if (this.attributes["currentQuestionIndex"] == GAME_LENGTH - 1) {
-    speechOutput = userGaveUp ? "" : this.t("ANSWER_IS_MESSAGE");
-    speechOutput += speechOutputAnalysis + this.t("GAME_OVER_MESSAGE", currentScore.toString(), GAME_LENGTH.toString());
-
-    this.emit(":tell", speechOutput)
-  } else {
-    currentQuestionIndex += 1;
-    correctAnswerIndex = Math.floor(Math.random() * (ANSWER_COUNT));
-    var spokenQuestion = Object.keys(translatedQuestions[gameQuestions[currentQuestionIndex]])[0];
-    var roundAnswers = populateRoundAnswers.call(this, gameQuestions, currentQuestionIndex, correctAnswerIndex, translatedQuestions);
-    var questionIndexForSpeech = currentQuestionIndex + 1;
-    var repromptText = this.t("TELL_QUESTION_MESSAGE", questionIndexForSpeech.toString(), spokenQuestion);
-
-    for (var i = 0; i < ANSWER_COUNT; i++) {
-      repromptText += (i + 1).toString() + ". " + roundAnswers[i] + ". "
-    }
-
-    speechOutput += userGaveUp ? "" : this.t("ANSWER_IS_MESSAGE");
-    speechOutput += speechOutputAnalysis + this.t("SCORE_IS_MESSAGE", currentScore.toString()) + repromptText;
-
-    Object.assign(this.attributes, {
-      "speechOutput": repromptText,
-      "repromptText": repromptText,
-      "currentQuestionIndex": currentQuestionIndex,
-      "correctAnswerIndex": correctAnswerIndex + 1,
-      "questions": gameQuestions,
-      "score": currentScore,
-      "correctAnswerText": translatedQuestions[gameQuestions[currentQuestionIndex]][Object.keys(translatedQuestions[gameQuestions[currentQuestionIndex]])[0]][0]
-    });
-
-    this.emit(":askWithCard", speechOutput, repromptText, this.t("GAME_NAME"), repromptText);
-  }
 }
